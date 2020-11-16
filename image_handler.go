@@ -2,7 +2,6 @@ package silverdile
 
 import (
 	"fmt"
-	"github.com/sinmetalcraft/silverdile/v2"
 	"net/http"
 	"strings"
 
@@ -23,7 +22,7 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	o, err := silverdile.BuildImageOption(strings.Join(l[1:], "/"))
+	o, err := BuildImageOption(strings.Join(l[1:], "/"))
 	if failure.Is(err, InvalidArgument) {
 		fmt.Printf("404: %+v\n", err)
 		w.WriteHeader(http.StatusNotFound)

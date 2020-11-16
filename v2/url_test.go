@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/morikuni/failure"
+	"golang.org/x/xerrors"
 
 	"github.com/sinmetalcraft/silverdile/v2"
 )
@@ -36,24 +36,17 @@ func TestBuildImageOptionError(t *testing.T) {
 	cases := []struct {
 		name string
 		url  string
-		want failure.StringCode
+		want error
 	}{
-		{"invalid argument", "/", silverdile.InvalidArgument},
+		{"invalid argument", "/", silverdile.ErrInvalidArgument},
 	}
 
 	for _, tt := range cases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := silverdile.BuildImageOption(tt.url)
-			if err == nil {
-				t.Errorf("not error")
-			}
-			code, ok := failure.CodeOf(err)
-			if !ok {
-				t.Errorf("want %+v but got nothing code. err=%+v", tt.want, err)
-			}
-			if e, g := tt.want, code; e != g {
-				t.Errorf("want %+v but got %+v", e, g)
+			if !xerrors.Is(err, tt.want) {
+				t.Errorf("want %+v but got %+v", err, tt.want)
 			}
 		})
 	}

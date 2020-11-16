@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/vvakame/sdlog/aelog"
+	"golang.org/x/xerrors"
 )
 
 type ImageHandlers struct {
@@ -36,7 +37,7 @@ func (h *ImageHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	o, err := BuildImageOption(strings.Join(l[1:], "/"))
-	if IsErrInvalidArgument(err) {
+	if xerrors.Is(err, ErrInvalidArgument) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write([]byte("invalid argument"))
 		if err != nil {
@@ -51,7 +52,7 @@ func (h *ImageHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 	o.CacheControlMaxAge = 3600
 
 	err = h.imageService.ReadAndWrite(ctx, w, o)
-	if IsErrNotFound(err) {
+	if xerrors.Is(err, ErrNotFound) {
 		aelog.Infof(ctx, "404: bucket=%v,object=%v,err=%+v", o.Bucket, o.Object, err)
 		w.WriteHeader(http.StatusNotFound)
 		return
