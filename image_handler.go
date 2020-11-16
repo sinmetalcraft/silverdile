@@ -1,13 +1,14 @@
-package gaeimage
+package silverdile
 
 import (
 	"fmt"
+	"github.com/sinmetalcraft/silverdile/v2"
 	"net/http"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/morikuni/failure"
-	"github.com/sinmetal/goma"
+	"github.com/sinmetalcraft/goma"
 )
 
 func ImageHandler(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +23,7 @@ func ImageHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	o, err := BuildImageOption(strings.Join(l[1:], "/"))
+	o, err := silverdile.BuildImageOption(strings.Join(l[1:], "/"))
 	if failure.Is(err, InvalidArgument) {
 		fmt.Printf("404: %+v\n", err)
 		w.WriteHeader(http.StatusNotFound)

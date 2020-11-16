@@ -1,4 +1,4 @@
-package gaeimage
+package silverdile
 
 import (
 	"io/ioutil"

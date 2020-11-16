@@ -1,4 +1,4 @@
-# gaeimage
+# silverdile
 
 Google App Engine Image Serviceのようなものを2nd genでも利用するために生まれた
 
@@ -36,7 +36,7 @@ Example
 
 ### Local GAE Run
 
-`go run github.com/sinmetal/gaeimage/app`
+`go run github.com/sinmetalcraft/silverdile/app`
 
 ### Deploy
 

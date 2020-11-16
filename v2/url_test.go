@@ -1,26 +1,27 @@
-package gaeimage
+package silverdile_test
 
 import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/morikuni/failure"
-	"github.com/sinmetal/gaeimage"
+
+	"github.com/sinmetalcraft/silverdile/v2"
 )
 
 func TestBuildImageOption(t *testing.T) {
 	cases := []struct {
 		name string
 		url  string
-		want *ImageOption
+		want *silverdile.ImageOption
 	}{
-		{"s32", "/hoge/fuga/=s32", &ImageOption{Bucket: "hoge", Object: "fuga", Size: 32}},
+		{"s32", "/hoge/fuga/=s32", &silverdile.ImageOption{Bucket: "hoge", Object: "fuga", Size: 32}},
 	}
 
 	for _, tt := range cases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := BuildImageOption(tt.url)
+			got, err := silverdile.BuildImageOption(tt.url)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -37,13 +38,13 @@ func TestBuildImageOptionError(t *testing.T) {
 		url  string
 		want failure.StringCode
 	}{
-		{"invalid argument", "/", gaeimage.InvalidArgument},
+		{"invalid argument", "/", silverdile.InvalidArgument},
 	}
 
 	for _, tt := range cases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := BuildImageOption(tt.url)
+			_, err := silverdile.BuildImageOption(tt.url)
 			if err == nil {
 				t.Errorf("not error")
 			}
