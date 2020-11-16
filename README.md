@@ -26,7 +26,7 @@ Pathとして `/{bucket}/{object}/=s???` を指定すると画像の長辺を???
 
 Example
 
-* https://sinmetal-image-service-dev.appspot.com/v2/sinmetal-image-service-dev/jun0.jpg/=s700
+* https://silverdile-dot-sinmetal-ci.an.r.appspot.com/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s700
 
 #### Limitation
 
