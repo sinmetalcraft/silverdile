@@ -1,11 +1,12 @@
-package silverdile
+package silverdile_test
 
 import (
-	"github.com/sinmetalcraft/silverdile/v2"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/morikuni/failure"
+
+	"github.com/sinmetalcraft/silverdile"
 )
 
 func TestBuildImageOption(t *testing.T) {
@@ -37,7 +38,7 @@ func TestBuildImageOptionError(t *testing.T) {
 		url  string
 		want failure.StringCode
 	}{
-		{"invalid argument", "/", InvalidArgument},
+		{"invalid argument", "/", silverdile.InvalidArgument},
 	}
 
 	for _, tt := range cases {

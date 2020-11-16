@@ -8,4 +8,5 @@ require (
 	github.com/morikuni/failure v0.13.0
 	github.com/sinmetalcraft/goma v0.0.1
 	github.com/vvakame/sdlog v0.0.0-20200409072131-7c0d359efddc
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 )

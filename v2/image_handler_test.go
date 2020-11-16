@@ -14,11 +14,14 @@ import (
 	"github.com/sinmetalcraft/silverdile/v2"
 )
 
+const bucket = "sinmetal-ci-silverdile"
+const object = "jun0.jpg"
+
 func TestImageHandlerV2_NoResize(t *testing.T) {
 	ih := newTestImageHandlers(t)
 
 	// 適当なサイズで2回やってみる
-	r := httptest.NewRequest("GET", "https://example.com/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg", nil)
+	r := httptest.NewRequest("GET", fmt.Sprintf("https://example.com/v2/image/resize/%s/%s", bucket, object), nil)
 	w := httptest.NewRecorder()
 
 	ih.ResizeHandler(w, r)
@@ -38,7 +41,7 @@ func TestImageHandlerV2_Resize(t *testing.T) {
 	size := rand.Intn(600)
 	for i := 0; i < 2; i++ {
 
-		r := httptest.NewRequest("GET", fmt.Sprintf("https://example.com/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s%d", size), nil)
+		r := httptest.NewRequest("GET", fmt.Sprintf("https://example.com/v2/image/resize/%s/%s/=s%d", bucket, object, size), nil)
 		w := httptest.NewRecorder()
 
 		ih.ResizeHandler(w, r)

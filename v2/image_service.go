@@ -6,13 +6,12 @@ import (
 	"image"
 	"io"
 	"net/http"
-	"strconv"
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/morikuni/failure"
 	"github.com/sinmetalcraft/goma"
 	"github.com/vvakame/sdlog/aelog"
+	"golang.org/x/xerrors"
 )
 
 type serviceOptions struct {
@@ -51,20 +50,74 @@ func NewImageService(ctx context.Context, gcs *storage.Client, goma *goma.Storag
 	return s, nil
 }
 
+// ExistObject is 指定した Object が Cloud Storage 上に存在するかをチェックする
+// 存在する場合は nil を返し、存在しない場合は NotFound を返す
+func (s *ImageService) ExistObject(ctx context.Context, o *ImageOption) error {
+	_, err := s.gcs.Bucket(o.Bucket).Object(o.Object).Attrs(ctx)
+	if err == storage.ErrObjectNotExist {
+		return NewErrNotFound(fmt.Sprintf("gs://%s/%s", o.Bucket, o.Object), err) // オリジナル画像がない場合は NotFound を返す
+	} else if err != nil {
+		return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": o.Bucket, "object": o.Object}, err)
+	}
+
+	bucket := o.Bucket
+	object := o.Object
+	if o.Size > 0 {
+		bucket = s.BucketOfAlteredObject(bucket)
+		object = s.ObjectOfAltered(object, o.Size)
+		_, err := s.gcs.Bucket(bucket).Object(object).Attrs(ctx)
+		if err == storage.ErrObjectNotExist {
+			return NewErrNotFound(fmt.Sprintf("gs://%s/%s", bucket, object), err) // 指定サイズのキャッシュ画像がない場合は NotFound を返す
+		} else if err != nil {
+			return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": bucket, "object": object}, err)
+		}
+	}
+
+	return nil
+}
+
+// ReadAndWriteWithoutResize is Cloud Storage から読み込んだ Image を http.ResponseWriter に書き込む
+// ただし、 Image を変換する必要がある場合は、 HOGE を返す
+// そのため、Response に書き込むのはオリジナル画像を返す時か、すでに生成済みの画像を返す時のみ
+// Image 変換処理はある程度メモリを食う処理なので、変換処理だけは別 Instance で行いたい時に使う
+func (s *ImageService) ReadAndWriteWithoutResize(ctx context.Context, w http.ResponseWriter, o *ImageOption) error {
+	objAttrs, err := s.gcs.Bucket(o.Bucket).Object(o.Object).Attrs(ctx)
+	if err == storage.ErrObjectNotExist {
+		return NewErrNotFound(fmt.Sprintf("gs://%s/%s", o.Bucket, o.Object), err) // オリジナル画像がない場合は NotFound を返す
+	} else if err != nil {
+		return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": o.Bucket, "object": o.Object}, err)
+	}
+
+	bucket := o.Bucket
+	object := o.Object
+	if o.Size > 0 {
+		bucket = s.BucketOfAlteredObject(bucket)
+		object = s.ObjectOfAltered(object, o.Size)
+		objAttrs, err = s.gcs.Bucket(bucket).Object(object).Attrs(ctx)
+		if xerrors.Is(err, storage.ErrObjectNotExist) {
+			return NewErrNeedConvert("need to convert", map[string]interface{}{"bucket": bucket, "object": object})
+		} else if err != nil {
+			return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": bucket, "object": object}, err)
+		}
+	}
+
+	return s.writeResponse(ctx, w, bucket, object, &imageHeaders{
+		CacheControlMaxAge: o.CacheControlMaxAge,
+		LastModified:       objAttrs.Created,
+		ContentLength:      objAttrs.Size,
+		ContentType:        objAttrs.ContentType,
+	})
+}
+
 // ReadAndWrite is Cloud Storage から読み込んだImageをhttp.ResponseWriterに書き込む
 // gaeimage.ImageOptionにより画像の変換が求められている場合、変換後Object保存用Bucketを参照し、すでにあればそれを書き込む
 // 変換後Object保存用Bucketに変換されたObjectがない場合、変換したImageを作成し、変換後Object保存用Bucketに保存して、それを書き込む
 func (s *ImageService) ReadAndWrite(ctx context.Context, w http.ResponseWriter, o *ImageOption) error {
 	objAttrs, err := s.gcs.Bucket(o.Bucket).Object(o.Object).Attrs(ctx)
 	if err == storage.ErrObjectNotExist {
-		return failure.New(NotFound) // オリジナル画像がない場合はNotFoundを返す
+		return NewErrNotFound(fmt.Sprintf("gs://%s/%s", o.Bucket, o.Object), err) // オリジナル画像がない場合は NotFound を返す
 	} else if err != nil {
-		return failure.Wrap(err, failure.WithCode(InternalError),
-			failure.Messagef("failed storage.object.attrs"),
-			failure.Context{
-				"bucket": o.Bucket,
-				"object": o.Object,
-			})
+		return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": o.Bucket, "object": o.Object}, err)
 	}
 
 	bucket := o.Bucket
@@ -76,13 +129,7 @@ func (s *ImageService) ReadAndWrite(ctx context.Context, w http.ResponseWriter, 
 		if err == storage.ErrObjectNotExist {
 			img, gt, err := s.ResizeToGCS(ctx, o)
 			if err != nil {
-				return failure.Wrap(err, failure.WithCode(InternalError),
-					failure.Messagef("failed ResizeToGCS"),
-					failure.Context{
-						"bucket": o.Bucket,
-						"object": o.Object,
-						"size":   strconv.Itoa(o.Size),
-					})
+				return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": bucket, "object": object}, err)
 			}
 
 			// file sizeが分からなかったので、content-length付けてないが、Google Frontendが付けてくれる
@@ -102,13 +149,7 @@ func (s *ImageService) ReadAndWrite(ctx context.Context, w http.ResponseWriter, 
 
 			return nil
 		} else if err != nil {
-			return failure.Wrap(err, failure.WithCode(InternalError),
-				failure.Messagef("failed storage.object.attrs"),
-				failure.Context{
-					"bucket": o.Bucket,
-					"object": o.Object,
-					"size":   strconv.Itoa(o.Size),
-				})
+			return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": bucket, "object": object}, err)
 		}
 	}
 
@@ -153,12 +194,7 @@ func (s *ImageService) writeHeaders(ctx context.Context, w http.ResponseWriter, 
 func (s *ImageService) writeResponse(ctx context.Context, w http.ResponseWriter, bucket, object string, hs *imageHeaders) error {
 	or, err := s.gcs.Bucket(bucket).Object(object).NewReader(ctx)
 	if err != nil {
-		return failure.Wrap(err, failure.WithCode(InternalError),
-			failure.Messagef("failed storage.object.NewReader"),
-			failure.Context{
-				"bucket": bucket,
-				"object": object,
-			})
+		return NewErrCloudStorage("failed object.NewReader", map[string]interface{}{"bucket": bucket, "object": object}, err)
 	}
 
 	err = s.writeHeaders(ctx, w, hs)
@@ -168,12 +204,7 @@ func (s *ImageService) writeResponse(ctx context.Context, w http.ResponseWriter,
 
 	_, err = io.Copy(w, or)
 	if err != nil {
-		return failure.Wrap(err, failure.WithCode(InternalError),
-			failure.Messagef("failed write to response"),
-			failure.Context{
-				"bucket": bucket,
-				"object": object,
-			})
+		return NewErrInternalError("failed io.Copy", map[string]interface{}{"bucket": bucket, "object": object}, err)
 	}
 
 	return nil
