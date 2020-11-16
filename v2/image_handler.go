@@ -9,11 +9,13 @@ import (
 )
 
 type ImageHandlers struct {
+	basePath     string
 	imageService *ImageService
 }
 
-func NewImageHandlers(ctx context.Context, imageService *ImageService) *ImageHandlers {
+func NewImageHandlers(ctx context.Context, basePath string, imageService *ImageService) *ImageHandlers {
 	return &ImageHandlers{
+		basePath:     basePath,
 		imageService: imageService,
 	}
 }
@@ -21,7 +23,9 @@ func NewImageHandlers(ctx context.Context, imageService *ImageService) *ImageHan
 func (h *ImageHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := aelog.WithHTTPRequest(r.Context(), r)
 
-	l := strings.Split(r.URL.Path, "/")
+	// /resize/{BUCKE}/{OBJECT} が来るのを期待している
+	path := strings.Replace(r.URL.Path, h.basePath, "", -1)
+	l := strings.Split(path, "/")
 	if len(l) < 4 {
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write([]byte("invalid argument"))

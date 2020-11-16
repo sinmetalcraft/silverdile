@@ -18,7 +18,7 @@ func TestImageHandlerV2_NoResize(t *testing.T) {
 	ih := newTestImageHandlers(t)
 
 	// 適当なサイズで2回やってみる
-	r := httptest.NewRequest("GET", "https://example.com/v2/sinmetal-ci-silverdile/jun0.jpg", nil)
+	r := httptest.NewRequest("GET", "https://example.com/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg", nil)
 	w := httptest.NewRecorder()
 
 	ih.ResizeHandler(w, r)
@@ -38,7 +38,7 @@ func TestImageHandlerV2_Resize(t *testing.T) {
 	size := rand.Intn(600)
 	for i := 0; i < 2; i++ {
 
-		r := httptest.NewRequest("GET", fmt.Sprintf("https://example.com/v2/sinmetal-ci-silverdile/jun0.jpg/=s%d", size), nil)
+		r := httptest.NewRequest("GET", fmt.Sprintf("https://example.com/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s%d", size), nil)
 		w := httptest.NewRecorder()
 
 		ih.ResizeHandler(w, r)
@@ -66,5 +66,5 @@ func newTestImageHandlers(t *testing.T) *silverdile.ImageHandlers {
 		t.Fatal(err)
 	}
 
-	return silverdile.NewImageHandlers(ctx, is)
+	return silverdile.NewImageHandlers(ctx, "/v2/image", is)
 }

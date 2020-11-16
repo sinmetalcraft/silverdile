@@ -35,12 +35,12 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		v2hs = v2.NewImageHandlers(ctx, is)
+		v2hs = v2.NewImageHandlers(ctx, "/v2/image", is)
 	}
 
 	log.Printf("Listening on port %s", port)
-	http.HandleFunc("/v2/image/resize", v2hs.ResizeHandler)
-	http.HandleFunc("/v1/image", v1.ImageHandler)
+	http.HandleFunc("/v2/image/resize/", v2hs.ResizeHandler)
+	http.HandleFunc("/v1", v1.ImageHandler)
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), http.DefaultServeMux); err != nil {
 		log.Printf("failed ListenAndServe err=%+v", err)
 	}
