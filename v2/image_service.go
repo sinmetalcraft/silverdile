@@ -1,4 +1,4 @@
-package gaeimage
+package silverdile
 
 import (
 	"context"
@@ -11,8 +11,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/morikuni/failure"
-	"github.com/sinmetal/gaeimage"
-	"github.com/sinmetal/goma"
+	"github.com/sinmetalcraft/goma"
 	"github.com/vvakame/sdlog/aelog"
 )
 
@@ -58,9 +57,9 @@ func NewImageService(ctx context.Context, gcs *storage.Client, goma *goma.Storag
 func (s *ImageService) ReadAndWrite(ctx context.Context, w http.ResponseWriter, o *ImageOption) error {
 	objAttrs, err := s.gcs.Bucket(o.Bucket).Object(o.Object).Attrs(ctx)
 	if err == storage.ErrObjectNotExist {
-		return failure.New(gaeimage.NotFound) // オリジナル画像がない場合はNotFoundを返す
+		return failure.New(NotFound) // オリジナル画像がない場合はNotFoundを返す
 	} else if err != nil {
-		return failure.Wrap(err, failure.WithCode(gaeimage.InternalError),
+		return failure.Wrap(err, failure.WithCode(InternalError),
 			failure.Messagef("failed storage.object.attrs"),
 			failure.Context{
 				"bucket": o.Bucket,
@@ -77,7 +76,7 @@ func (s *ImageService) ReadAndWrite(ctx context.Context, w http.ResponseWriter, 
 		if err == storage.ErrObjectNotExist {
 			img, gt, err := s.ResizeToGCS(ctx, o)
 			if err != nil {
-				return failure.Wrap(err, failure.WithCode(gaeimage.InternalError),
+				return failure.Wrap(err, failure.WithCode(InternalError),
 					failure.Messagef("failed ResizeToGCS"),
 					failure.Context{
 						"bucket": o.Bucket,
@@ -103,7 +102,7 @@ func (s *ImageService) ReadAndWrite(ctx context.Context, w http.ResponseWriter, 
 
 			return nil
 		} else if err != nil {
-			return failure.Wrap(err, failure.WithCode(gaeimage.InternalError),
+			return failure.Wrap(err, failure.WithCode(InternalError),
 				failure.Messagef("failed storage.object.attrs"),
 				failure.Context{
 					"bucket": o.Bucket,
@@ -154,7 +153,7 @@ func (s *ImageService) writeHeaders(ctx context.Context, w http.ResponseWriter, 
 func (s *ImageService) writeResponse(ctx context.Context, w http.ResponseWriter, bucket, object string, hs *imageHeaders) error {
 	or, err := s.gcs.Bucket(bucket).Object(object).NewReader(ctx)
 	if err != nil {
-		return failure.Wrap(err, failure.WithCode(gaeimage.InternalError),
+		return failure.Wrap(err, failure.WithCode(InternalError),
 			failure.Messagef("failed storage.object.NewReader"),
 			failure.Context{
 				"bucket": bucket,
@@ -169,7 +168,7 @@ func (s *ImageService) writeResponse(ctx context.Context, w http.ResponseWriter,
 
 	_, err = io.Copy(w, or)
 	if err != nil {
-		return failure.Wrap(err, failure.WithCode(gaeimage.InternalError),
+		return failure.Wrap(err, failure.WithCode(InternalError),
 			failure.Messagef("failed write to response"),
 			failure.Context{
 				"bucket": bucket,

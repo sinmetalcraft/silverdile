@@ -1,0 +1,9 @@
+steps:
+  - name: 'gcr.io/cloud-builders/go:debian'
+    entrypoint: 'go'
+    args: ['test', './...']
+    env: ['GO111MODULE=on']
+  # Deploy to App Engine
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: ['app', 'deploy', 'app/app.yaml']

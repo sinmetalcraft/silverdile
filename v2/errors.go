@@ -1,20 +1,23 @@
-package gaeimage
+package silverdile
 
 import (
 	"github.com/morikuni/failure"
-	"github.com/sinmetal/gaeimage"
 )
 
+var InvalidArgument failure.StringCode = "InvalidArgument"
+var NotFound failure.StringCode = "NotFound"
+var InternalError failure.StringCode = "InternalError"
+
 func IsErrInvalidArgument(err error) bool {
-	return isError(err, gaeimage.InvalidArgument)
+	return isError(err, InvalidArgument)
 }
 
 func IsErrNotFound(err error) bool {
-	return isError(err, gaeimage.NotFound)
+	return isError(err, NotFound)
 }
 
 func IsErrInternalError(err error) bool {
-	return isError(err, gaeimage.InternalError)
+	return isError(err, InternalError)
 }
 
 func isError(err error, code failure.StringCode) bool {

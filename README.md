@@ -1,4 +1,4 @@
-# gaeimage
+# silverdile
 
 Google App Engine Image Serviceのようなものを2nd genでも利用するために生まれた
 
@@ -26,7 +26,7 @@ Pathとして `/{bucket}/{object}/=s???` を指定すると画像の長辺を???
 
 Example
 
-* https://sinmetal-image-service-dev.appspot.com/v2/sinmetal-image-service-dev/jun0.jpg/=s700
+* https://silverdile-dot-sinmetal-ci.an.r.appspot.com/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s700
 
 #### Limitation
 
@@ -36,7 +36,7 @@ Example
 
 ### Local GAE Run
 
-`go run github.com/sinmetal/gaeimage/app`
+`go run github.com/sinmetalcraft/silverdile/app`
 
 ### Deploy
 
