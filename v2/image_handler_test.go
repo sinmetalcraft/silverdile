@@ -20,18 +20,31 @@ const object = "jun0.jpg"
 func TestImageHandlerV2_NoResize(t *testing.T) {
 	ih := newTestImageHandlers(t)
 
-	// 適当なサイズで2回やってみる
-	r := httptest.NewRequest("GET", fmt.Sprintf("https://example.com/v2/image/resize/%s/%s", bucket, object), nil)
-	w := httptest.NewRecorder()
-
-	ih.ResizeHandler(w, r)
-
-	resp := w.Result()
-
-	if e, g := http.StatusOK, resp.StatusCode; e != g {
-		body, _ := ioutil.ReadAll(resp.Body)
-		t.Errorf("StatusCode want %v got %v. body=%v", e, g, string(body))
+	cases := []struct {
+		name   string
+		object string
+	}{
+		{"simple", object},
+		{"object in folder", "hoge/fuga/jun0.jpg"},
 	}
+
+	for _, tt := range cases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest("GET", fmt.Sprintf("https://example.com/v2/image/resize/%s/%s", bucket, tt.object), nil)
+			w := httptest.NewRecorder()
+
+			ih.ResizeHandler(w, r)
+
+			resp := w.Result()
+
+			if e, g := http.StatusOK, resp.StatusCode; e != g {
+				body, _ := ioutil.ReadAll(resp.Body)
+				t.Errorf("StatusCode want %v got %v. body=%v", e, g, string(body))
+			}
+		})
+	}
+
 }
 
 func TestImageHandlerV2_Resize(t *testing.T) {

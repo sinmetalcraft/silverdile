@@ -2,6 +2,7 @@ package silverdile
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -24,19 +25,9 @@ func NewImageHandlers(ctx context.Context, basePath string, imageService *ImageS
 func (h *ImageHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := aelog.WithHTTPRequest(r.Context(), r)
 
-	// /resize/{BUCKE}/{OBJECT} が来るのを期待している
-	path := strings.Replace(r.URL.Path, h.basePath, "", -1)
-	l := strings.Split(path, "/")
-	if len(l) < 4 {
-		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write([]byte("invalid argument"))
-		if err != nil {
-			aelog.Errorf(ctx, "failed write to response. err%+v", err)
-		}
-		return
-	}
-
-	o, err := BuildImageOption(strings.Join(l[1:], "/"))
+	// /resize/{BUCKET}/{OBJECT} が来るのを期待している
+	path := strings.Replace(r.URL.Path, fmt.Sprintf("%s/resize", h.basePath), "", -1)
+	o, err := BuildImageOption(path)
 	if xerrors.Is(err, ErrInvalidArgument) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write([]byte("invalid argument"))
