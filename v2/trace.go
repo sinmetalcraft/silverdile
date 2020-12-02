@@ -45,5 +45,5 @@ func addImageOption(ctx context.Context, o *ImageOption) {
 		return
 	}
 
-	span.AddAttributes(trace.Int64Attribute("Resize", int64(o.Size)))
+	span.AddAttributes(trace.Int64Attribute("ResizeLongSide", int64(o.Size)))
 }
