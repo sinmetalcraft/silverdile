@@ -8,9 +8,14 @@ import (
 	"os"
 
 	"cloud.google.com/go/storage"
+	"contrib.go.opencensus.io/exporter/stackdriver"
+	"contrib.go.opencensus.io/exporter/stackdriver/propagation"
+	metadatabox "github.com/sinmetalcraft/gcpbox/metadata"
 	"github.com/sinmetalcraft/goma"
 	v1 "github.com/sinmetalcraft/silverdile"
 	v2 "github.com/sinmetalcraft/silverdile/v2"
+	"go.opencensus.io/plugin/ochttp"
+	"go.opencensus.io/trace"
 )
 
 func main() {
@@ -20,6 +25,21 @@ func main() {
 	if port == "" {
 		port = "8080"
 		log.Printf("Defaulting to port %s", port)
+	}
+
+	if metadatabox.OnGCP() {
+		pID, err := metadatabox.ProjectID()
+		if err != nil {
+			panic(err)
+		}
+		exporter, err := stackdriver.NewExporter(stackdriver.Options{
+			ProjectID: pID,
+		})
+		if err != nil {
+			panic(err)
+		}
+		trace.RegisterExporter(exporter)
+		trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
 	}
 
 	gcs, err := storage.NewClient(ctx)
@@ -38,10 +58,16 @@ func main() {
 		v2hs = v2.NewImageHandlers(ctx, "/v2/image", is)
 	}
 
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v2/image/resize/", v2hs.ResizeHandler)
+	mux.HandleFunc("/v1", v1.ImageHandler)
+
 	log.Printf("Listening on port %s", port)
-	http.HandleFunc("/v2/image/resize/", v2hs.ResizeHandler)
-	http.HandleFunc("/v1", v1.ImageHandler)
-	if err := http.ListenAndServe(fmt.Sprintf(":%s", port), http.DefaultServeMux); err != nil {
-		log.Printf("failed ListenAndServe err=%+v", err)
-	}
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), &ochttp.Handler{
+		Handler:     mux,
+		Propagation: &propagation.HTTPFormat{},
+		FormatSpanName: func(req *http.Request) string {
+			return fmt.Sprintf("/silverdile%s", req.URL.Path)
+		},
+	}))
 }
