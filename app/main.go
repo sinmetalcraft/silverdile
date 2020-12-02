@@ -9,12 +9,12 @@ import (
 
 	"cloud.google.com/go/storage"
 	"contrib.go.opencensus.io/exporter/stackdriver"
+	"contrib.go.opencensus.io/exporter/stackdriver/propagation"
 	metadatabox "github.com/sinmetalcraft/gcpbox/metadata"
 	"github.com/sinmetalcraft/goma"
 	v1 "github.com/sinmetalcraft/silverdile"
 	v2 "github.com/sinmetalcraft/silverdile/v2"
 	"go.opencensus.io/plugin/ochttp"
-	"go.opencensus.io/plugin/ochttp/propagation/b3"
 	"go.opencensus.io/trace"
 )
 
@@ -39,7 +39,7 @@ func main() {
 			panic(err)
 		}
 		trace.RegisterExporter(exporter)
-		trace.AlwaysSample()
+		trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
 	}
 
 	gcs, err := storage.NewClient(ctx)
@@ -65,7 +65,7 @@ func main() {
 	log.Printf("Listening on port %s", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), &ochttp.Handler{
 		Handler:     mux,
-		Propagation: &b3.HTTPFormat{},
+		Propagation: &propagation.HTTPFormat{},
 		FormatSpanName: func(req *http.Request) string {
 			return fmt.Sprintf("/silverdile/%s", req.URL.Path)
 		},
