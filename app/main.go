@@ -67,7 +67,7 @@ func main() {
 		Handler:     mux,
 		Propagation: &propagation.HTTPFormat{},
 		FormatSpanName: func(req *http.Request) string {
-			return fmt.Sprintf("/silverdile/%s", req.URL.Path)
+			return fmt.Sprintf("/silverdile%s", req.URL.Path)
 		},
 	}))
 }
