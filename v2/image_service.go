@@ -52,13 +52,19 @@ func NewImageService(ctx context.Context, gcs *storage.Client, goma *goma.Storag
 
 // ExistObject is 指定した Object が Cloud Storage 上に存在するかをチェックする
 // 存在する場合は nil を返し、存在しない場合は NotFound を返す
-func (s *ImageService) ExistObject(ctx context.Context, o *ImageOption) error {
-	_, err := s.gcs.Bucket(o.Bucket).Object(o.Object).Attrs(ctx)
+func (s *ImageService) ExistObject(ctx context.Context, o *ImageOption) (err error) {
+	ctx = startSpan(ctx, "ExistObject")
+	defer func() { endSpan(ctx, err) }()
+
+	addImageOption(ctx, o)
+
+	objAttrs, err := s.gcs.Bucket(o.Bucket).Object(o.Object).Attrs(ctx)
 	if err == storage.ErrObjectNotExist {
 		return NewErrNotFound(fmt.Sprintf("gs://%s/%s", o.Bucket, o.Object), err) // オリジナル画像がない場合は NotFound を返す
 	} else if err != nil {
 		return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": o.Bucket, "object": o.Object}, err)
 	}
+	addObjectAttribute(ctx, objAttrs, o.Bucket)
 
 	bucket := o.Bucket
 	object := o.Object
@@ -80,13 +86,19 @@ func (s *ImageService) ExistObject(ctx context.Context, o *ImageOption) error {
 // ただし、 Image を変換する必要がある場合は、 HOGE を返す
 // そのため、Response に書き込むのはオリジナル画像を返す時か、すでに生成済みの画像を返す時のみ
 // Image 変換処理はある程度メモリを食う処理なので、変換処理だけは別 Instance で行いたい時に使う
-func (s *ImageService) ReadAndWriteWithoutResize(ctx context.Context, w http.ResponseWriter, o *ImageOption) error {
+func (s *ImageService) ReadAndWriteWithoutResize(ctx context.Context, w http.ResponseWriter, o *ImageOption) (err error) {
+	ctx = startSpan(ctx, "ReadAndWriteWithoutResize")
+	defer func() { endSpan(ctx, err) }()
+
+	addImageOption(ctx, o)
+
 	objAttrs, err := s.gcs.Bucket(o.Bucket).Object(o.Object).Attrs(ctx)
 	if err == storage.ErrObjectNotExist {
 		return NewErrNotFound(fmt.Sprintf("gs://%s/%s", o.Bucket, o.Object), err) // オリジナル画像がない場合は NotFound を返す
 	} else if err != nil {
 		return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": o.Bucket, "object": o.Object}, err)
 	}
+	addObjectAttribute(ctx, objAttrs, o.Bucket)
 
 	bucket := o.Bucket
 	object := o.Object
@@ -112,13 +124,19 @@ func (s *ImageService) ReadAndWriteWithoutResize(ctx context.Context, w http.Res
 // ReadAndWrite is Cloud Storage から読み込んだImageをhttp.ResponseWriterに書き込む
 // gaeimage.ImageOptionにより画像の変換が求められている場合、変換後Object保存用Bucketを参照し、すでにあればそれを書き込む
 // 変換後Object保存用Bucketに変換されたObjectがない場合、変換したImageを作成し、変換後Object保存用Bucketに保存して、それを書き込む
-func (s *ImageService) ReadAndWrite(ctx context.Context, w http.ResponseWriter, o *ImageOption) error {
+func (s *ImageService) ReadAndWrite(ctx context.Context, w http.ResponseWriter, o *ImageOption) (err error) {
+	ctx = startSpan(ctx, "ReadAndWrite")
+	defer func() { endSpan(ctx, err) }()
+
+	addImageOption(ctx, o)
+
 	objAttrs, err := s.gcs.Bucket(o.Bucket).Object(o.Object).Attrs(ctx)
 	if err == storage.ErrObjectNotExist {
 		return NewErrNotFound(fmt.Sprintf("gs://%s/%s", o.Bucket, o.Object), err) // オリジナル画像がない場合は NotFound を返す
 	} else if err != nil {
 		return NewErrCloudStorage("failed get object attrs", map[string]interface{}{"bucket": o.Bucket, "object": o.Object}, err)
 	}
+	addObjectAttribute(ctx, objAttrs, o.Bucket)
 
 	bucket := o.Bucket
 	object := o.Object
@@ -168,7 +186,10 @@ type imageHeaders struct {
 	ContentType        string
 }
 
-func (s *ImageService) writeHeaders(ctx context.Context, w http.ResponseWriter, hs *imageHeaders) error {
+func (s *ImageService) writeHeaders(ctx context.Context, w http.ResponseWriter, hs *imageHeaders) (err error) {
+	ctx = startSpan(ctx, "writeHeaders")
+	defer func() { endSpan(ctx, err) }()
+
 	setHeaderIfEmpty := func(key, value string) {
 		if w.Header().Get(key) == "" {
 			w.Header().Set(key, value)
@@ -191,7 +212,10 @@ func (s *ImageService) writeHeaders(ctx context.Context, w http.ResponseWriter, 
 	return nil
 }
 
-func (s *ImageService) writeResponse(ctx context.Context, w http.ResponseWriter, bucket, object string, hs *imageHeaders) error {
+func (s *ImageService) writeResponse(ctx context.Context, w http.ResponseWriter, bucket, object string, hs *imageHeaders) (err error) {
+	ctx = startSpan(ctx, "writeResponse")
+	defer func() { endSpan(ctx, err) }()
+
 	or, err := s.gcs.Bucket(bucket).Object(object).NewReader(ctx)
 	if err != nil {
 		return NewErrCloudStorage("failed object.NewReader", map[string]interface{}{"bucket": bucket, "object": object}, err)
@@ -211,8 +235,11 @@ func (s *ImageService) writeResponse(ctx context.Context, w http.ResponseWriter,
 }
 
 // ResizeToGCS is 画像をリサイズしてCloud Storageに保存する
-func (s *ImageService) ResizeToGCS(ctx context.Context, o *ImageOption) (image.Image, *goma.GomaType, error) {
-	img, gt, err := s.goma.Read(ctx, o.Bucket, o.Object)
+func (s *ImageService) ResizeToGCS(ctx context.Context, o *ImageOption) (img image.Image, gt *goma.GomaType, err error) {
+	ctx = startSpan(ctx, "ResizeToGCS")
+	defer func() { endSpan(ctx, err) }()
+
+	img, gt, err = s.goma.Read(ctx, o.Bucket, o.Object)
 	if err != nil {
 		return nil, nil, err
 	}
