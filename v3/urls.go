@@ -12,20 +12,20 @@ const MaxResizeSize = 2560
 
 var sizeRegexp = regexp.MustCompile(`=s[\d]+`)
 
-type ResizeInfo struct {
+type ResizeRequest struct {
 	Bucket string
 	Object string
 	Size   int
 }
 
-// BuildResizeInfo is Request URLからResizeに必要な情報を生成する
+// BuildResizeRequest is Request URLからResizeに必要な情報を生成する
 // App Engine Image Serviceと同じ雰囲気のURLを利用する時に使う
 //
 // 期待する形式
 // `/{bucket}/{object}`
 // `/{bucket}/{object}/=sXXX`
-func BuildResizeInfo(path string) (*ResizeInfo, error) {
-	ret := &ResizeInfo{}
+func BuildResizeRequest(path string) (*ResizeRequest, error) {
+	ret := &ResizeRequest{}
 
 	blocks := strings.Split(path, "/")
 	if len(blocks) < 3 {

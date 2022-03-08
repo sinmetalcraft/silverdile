@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/disintegration/imaging"
@@ -11,8 +12,7 @@ import (
 )
 
 type ImageService struct {
-	alterBucket string
-	GCS         *storage.Client
+	GCS *storage.Client
 }
 
 func NewImageService(ctx context.Context, gcs *storage.Client) (*ImageService, error) {
@@ -39,27 +39,30 @@ func (s *ImageService) ResizeToFitLongSide(ctx context.Context, src image.Image,
 	return imaging.Resize(src, 0, size, imaging.Lanczos), nil
 }
 
-func (s *ImageService) Write(ctx context.Context, bucket string, object string, img image.Image, meta *ImageMeta, attrs *storage.ObjectAttrs) (err error) {
+// Write is Cloud Storageに指定したImageを書き込む
+// storage.ObjectAttrsは指定したいものがなければ、ほとんど空で構わないが、ContentTypeは必須
+func (s *ImageService) Write(ctx context.Context, bucket string, object string, img image.Image, attrs *storage.ObjectAttrs) (err error) {
 	ctx = trace.StartSpan(ctx, "ImageService.Write")
 	defer func() { trace.EndSpan(ctx, err) }()
 
 	w := s.GCS.Bucket(bucket).Object(object).NewWriter(ctx)
-	if attrs != nil {
-		w.ObjectAttrs = *attrs
-	}
+	w.ObjectAttrs = *attrs
 	w.ObjectAttrs.Name = object
-	w.ObjectAttrs.ContentType = meta.ContentType
-	if err := imaging.Encode(w, img, meta.FormatType.ImagingFormat()); err != nil {
+	f, err := ContentTypeToImagingFormat(attrs.ContentType)
+	if err != nil {
+		return fmt.Errorf("%s is unsupported content-type : %w", attrs.ContentType, err)
+	}
+	if err := imaging.Encode(w, img, f); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *ImageService) Read(ctx context.Context, bucket string, object string) (img image.Image, meta *ImageMeta, err error) {
+func (s *ImageService) Read(ctx context.Context, bucket string, object string) (img image.Image, attrs *storage.ObjectAttrs, err error) {
 	ctx = trace.StartSpan(ctx, "ImageService.Read")
 	defer func() { trace.EndSpan(ctx, err) }()
 
-	attrs, err := s.GCS.Bucket(bucket).Object(object).Attrs(ctx)
+	attrs, err = s.GCS.Bucket(bucket).Object(object).Attrs(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -78,16 +81,15 @@ func (s *ImageService) Read(ctx context.Context, bucket string, object string) (
 		return nil, nil, err
 	}
 
-	var ft FormatType
-	switch attrs.ContentType {
-	case "image/png":
-		ft = PNG
-	case "image/jpeg":
-		ft = JPEG
-	}
+	return dst, attrs, nil
+}
 
-	return dst, &ImageMeta{
-		ContentType: attrs.ContentType,
-		FormatType:  ft,
-	}, nil
+func ContentTypeToImagingFormat(contentType string) (imaging.Format, error) {
+	v := strings.ToLower(contentType)
+	v = strings.TrimPrefix(v, "image/")
+	f, err := imaging.FormatFromExtension(v)
+	if err != nil {
+		return -1, err
+	}
+	return f, nil
 }

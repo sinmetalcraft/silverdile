@@ -12,18 +12,18 @@ func TestBuildResizeInfo(t *testing.T) {
 	cases := []struct {
 		name string
 		path string
-		want *silverdile.ResizeInfo
+		want *silverdile.ResizeRequest
 	}{
-		{"simple", "/hoge/moge.jpg", &silverdile.ResizeInfo{Bucket: "hoge", Object: "moge.jpg", Size: 0}},
-		{"s32", "/hoge/fuga/=s32", &silverdile.ResizeInfo{Bucket: "hoge", Object: "fuga", Size: 32}},
-		{"object in folder", "/bucket/hoge/fuga/moge.jpg", &silverdile.ResizeInfo{Bucket: "bucket", Object: "hoge/fuga/moge.jpg", Size: 0}},
-		{"object in folder with s32", "/bucket/hoge/fuga/moge.jpg/=s32", &silverdile.ResizeInfo{Bucket: "bucket", Object: "hoge/fuga/moge.jpg", Size: 32}},
+		{"simple", "/hoge/moge.jpg", &silverdile.ResizeRequest{Bucket: "hoge", Object: "moge.jpg", Size: 0}},
+		{"s32", "/hoge/fuga/=s32", &silverdile.ResizeRequest{Bucket: "hoge", Object: "fuga", Size: 32}},
+		{"object in folder", "/bucket/hoge/fuga/moge.jpg", &silverdile.ResizeRequest{Bucket: "bucket", Object: "hoge/fuga/moge.jpg", Size: 0}},
+		{"object in folder with s32", "/bucket/hoge/fuga/moge.jpg/=s32", &silverdile.ResizeRequest{Bucket: "bucket", Object: "hoge/fuga/moge.jpg", Size: 32}},
 	}
 
 	for _, tt := range cases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := silverdile.BuildResizeInfo(tt.path)
+			got, err := silverdile.BuildResizeRequest(tt.path)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -48,7 +48,7 @@ func TestBuildResizeInfoError(t *testing.T) {
 	for _, tt := range cases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := silverdile.BuildResizeInfo(tt.path)
+			_, err := silverdile.BuildResizeRequest(tt.path)
 			if !errors.Is(err, tt.want) {
 				t.Errorf("want %+v but got %+v", tt.want, err)
 			}
