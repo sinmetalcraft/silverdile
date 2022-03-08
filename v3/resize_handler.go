@@ -96,7 +96,7 @@ func (h *ResizeHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 		ContentType: attrs.ContentType,
 	})
 	if err != nil {
-		aelog.Errorf(ctx, "failed ImageService.Write gs://%s/%s size=%d %+v\n", h.alterBucket, resizeObject, err)
+		aelog.Errorf(ctx, "failed ImageService.Write gs://%s/%s size=%d %+v\n", h.alterBucket, resizeObject, rr.Size, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

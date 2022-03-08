@@ -16,15 +16,12 @@ func TestImageService_Read(t *testing.T) {
 	ctx := context.Background()
 
 	is := newImageService(t)
-	_, meta, err := is.Read(ctx, bucket, object)
+	_, attrs, err := is.Read(ctx, bucket, object)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if e, g := "", meta.ContentType; e != g {
-		t.Errorf("want meta.ContentType %s but got %s", e, g)
-	}
-	if e, g := silverdile.JPEG, meta.FormatType; e != g {
-		t.Errorf("want meta.ContentType %d but got %d", e, g)
+	if e, g := "image/jpg", attrs.ContentType; e != g {
+		t.Errorf("want attrs.ContentType %s but got %s", e, g)
 	}
 }
 
@@ -48,7 +45,7 @@ func TestImageService_Write(t *testing.T) {
 
 	// silverdile.WithAlterBucket("alter-sinmetal-ci-silverdile2")
 	is := newImageService(t)
-	img, meta, err := is.Read(ctx, bucket, object)
+	img, attrs, err := is.Read(ctx, bucket, object)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +55,9 @@ func TestImageService_Write(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := is.Write(ctx, fmt.Sprintf("alter-%s", bucket), fmt.Sprintf("%s_s%d", object, size), newImg, meta, nil); err != nil {
+	if err := is.Write(ctx, fmt.Sprintf("alter-%s", bucket), fmt.Sprintf("%s_s%d", object, size), newImg, &storage.ObjectAttrs{
+		ContentType: attrs.ContentType,
+	}); err != nil {
 		t.Fatal(err)
 	}
 }
