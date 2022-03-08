@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
+	"github.com/disintegration/imaging"
 	"github.com/sinmetalcraft/silverdile/v3"
 )
 
@@ -20,7 +21,7 @@ func TestImageService_Read(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if e, g := "image/jpg", attrs.ContentType; e != g {
+	if e, g := "image/jpeg", attrs.ContentType; e != g {
 		t.Errorf("want attrs.ContentType %s but got %s", e, g)
 	}
 }
@@ -59,6 +60,16 @@ func TestImageService_Write(t *testing.T) {
 		ContentType: attrs.ContentType,
 	}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestContentTypeToImagingFormat(t *testing.T) {
+	f, err := silverdile.ContentTypeToImagingFormat("image/jpeg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e, g := imaging.JPEG, f; e != g {
+		t.Errorf("want %d but got %d", e, g)
 	}
 }
 
