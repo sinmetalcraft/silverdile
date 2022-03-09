@@ -63,7 +63,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	v3hs := v3.NewResizeHandlers(ctx, "v3/image", "alter-sinmetal-ci-silverdile", v3ImageService)
+	v3hs := v3.NewResizeHandlers(ctx, "/v3/image", "alter-sinmetal-ci-silverdile", v3ImageService)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v2/image/resize/", v2hs.ResizeHandler)
