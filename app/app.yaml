@@ -1,2 +1,2 @@
-runtime: go113
+runtime: go116
 service: silverdile

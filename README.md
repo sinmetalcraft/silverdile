@@ -10,8 +10,14 @@ Google App Engine Image Serviceのようなものを2nd genでも利用するた
 
 ### v2
 
-変換要求が来た時に、変換後ObjectBucketを参照し、そこにすでに画像があれば、それを返す
-画像がない場合、画像を生成し、変換後ObjectBucketに保存して、それを返す
+変換要求が来た時に、変換後ObjectBucketを参照し、そこにすでに画像があれば、それを返す。
+画像がない場合、画像を生成し、変換後ObjectBucketに保存して、それを返す。
+
+### v3
+
+アーキテクチャはv2と同様。
+singleflightやcache layerを独自に入れやすいようにv2と比べて処理が分解されて、必要最低限のものだけになった。
+Cloud Runで動かすことを意識しているが、GAE 2nd Genでも動く。
 
 ## Setup
 
@@ -27,6 +33,7 @@ Pathとして `/{bucket}/{object}/=s???` を指定すると画像の長辺を???
 Example
 
 * https://silverdile-dot-sinmetal-ci.an.r.appspot.com/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s700
+* https://silverdile-dot-sinmetal-ci.an.r.appspot.com/v3/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s700
 
 #### Limitation
 
