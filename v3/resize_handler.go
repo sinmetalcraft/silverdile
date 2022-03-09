@@ -60,6 +60,7 @@ func (h *ResizeHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("last-modified", attrs.Updated.Format(http.TimeFormat))
 			w.Header().Set("content-type", attrs.ContentType)
 			w.Header().Set("content-length", fmt.Sprintf("%d", attrs.Size))
+			w.Header().Set("cache-control", "public, max-age=3600")
 			f, err := ContentTypeToImagingFormat(attrs.ContentType)
 			if err != nil {
 				aelog.Errorf(ctx, "failed ContentTypeToImagingFormat content-type=%s %+v\n", attrs.ContentType, err)
@@ -108,6 +109,7 @@ func (h *ResizeHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("last-modified", attrs.Updated.Format(http.TimeFormat))
 	w.Header().Set("content-type", attrs.ContentType)
+	w.Header().Set("cache-control", "public, max-age=3600")
 	w.WriteHeader(http.StatusOK)
 	f, err := ContentTypeToImagingFormat(attrs.ContentType)
 	if err != nil {
