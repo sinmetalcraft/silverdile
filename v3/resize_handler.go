@@ -56,6 +56,7 @@ func (h *ResizeHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 		} else if err != nil {
 			aelog.Errorf(ctx, "failed read cache image. gs://%s/%s %+v\n", h.alterBucket, resizeObject, err)
 			// cache読み込みに失敗した場合はとりあえず先に進む
+			// errorを返すか、Retryをするかなど選択肢が色々ある
 		} else {
 			w.Header().Set("last-modified", attrs.Updated.Format(http.TimeFormat))
 			w.Header().Set("content-type", attrs.ContentType)
