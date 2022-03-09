@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image"
 	"net/http"
 	"strings"
 
@@ -46,10 +47,9 @@ func (h *ResizeHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	resizeObject := fmt.Sprintf("%s_%d", rr.Object, rr.Size)
 
-	// すでに作成されたcache imageがある場合はそれを返す
-	{
+	resizeObject := fmt.Sprintf("%s_%d", rr.Object, rr.Size)
+	if rr.Size > 0 {
 		cache, attrs, err := h.imageService.Read(ctx, h.alterBucket, resizeObject)
 		if errors.Is(err, storage.ErrObjectNotExist) {
 			// cacheがなかった場合は、続きに進む
@@ -74,6 +74,7 @@ func (h *ResizeHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var result image.Image
 	org, attrs, err := h.imageService.Read(ctx, rr.Bucket, rr.Object)
 	if errors.Is(err, storage.ErrObjectNotExist) {
 		w.WriteHeader(http.StatusNotFound)
@@ -83,22 +84,26 @@ func (h *ResizeHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	result = org
 
-	newImg, err := h.imageService.ResizeToFitLongSide(ctx, org, rr.Size)
-	if err != nil {
-		aelog.Errorf(ctx, "failed ResizeToFitLongSide gs://%s/%s size=%d %+v\n", rr.Bucket, rr.Object, rr.Size, err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	if rr.Size > 0 {
+		newImg, err := h.imageService.ResizeToFitLongSide(ctx, org, rr.Size)
+		if err != nil {
+			aelog.Errorf(ctx, "failed ResizeToFitLongSide gs://%s/%s size=%d %+v\n", rr.Bucket, rr.Object, rr.Size, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		result = newImg
 
-	// 次回RequestのためにResizeしたImageをCacheとしてCloud Storageに書き込む
-	err = h.imageService.Write(ctx, h.alterBucket, resizeObject, newImg, &storage.ObjectAttrs{
-		ContentType: attrs.ContentType,
-	})
-	if err != nil {
-		aelog.Errorf(ctx, "failed ImageService.Write gs://%s/%s size=%d %+v\n", h.alterBucket, resizeObject, rr.Size, err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		// 次回RequestのためにResizeしたImageをCacheとしてCloud Storageに書き込む
+		err = h.imageService.Write(ctx, h.alterBucket, resizeObject, newImg, &storage.ObjectAttrs{
+			ContentType: attrs.ContentType,
+		})
+		if err != nil {
+			aelog.Errorf(ctx, "failed ImageService.Write gs://%s/%s size=%d %+v\n", h.alterBucket, resizeObject, rr.Size, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("last-modified", attrs.Updated.Format(http.TimeFormat))
@@ -110,7 +115,7 @@ func (h *ResizeHandlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	if err := imaging.Encode(w, newImg, f); err != nil {
+	if err := imaging.Encode(w, result, f); err != nil {
 		aelog.Errorf(ctx, "failed resize image write to response gs://%s/%s size=%d %+v\n", rr.Bucket, rr.Object, rr.Size, err)
 		return
 	}
