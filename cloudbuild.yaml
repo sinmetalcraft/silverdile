@@ -1,5 +1,5 @@
 steps:
-  - name: 'golang:1.17'
+  - name: 'golang:1.27'
     entrypoint: 'go'
     args: ['test', './...']
   # Deploy to App Engine
