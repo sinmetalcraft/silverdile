@@ -1,9 +1,59 @@
 package silverdile
 
 import (
-	"github.com/morikuni/failure"
+	"errors"
+	"fmt"
 )
 
-var InvalidArgument failure.StringCode = "InvalidArgument"
-var NotFound failure.StringCode = "NotFound"
-var InternalError failure.StringCode = "InternalError"
+// ErrInvalidArgument is 引数に問題がある時に返す
+var ErrInvalidArgument = &Error{
+	Code:    "InvalidArgument",
+	Message: "invalid argument",
+	KV:      map[string]interface{}{},
+}
+
+// Error is Error情報を保持する struct
+type Error struct {
+	Code    string
+	Message string
+	KV      map[string]interface{}
+	err     error
+}
+
+// Error is error interface func
+func (e *Error) Error() string {
+	if e.KV == nil || len(e.KV) < 1 {
+		if e.err != nil {
+			return fmt.Sprintf("%s: %s: err=%s", e.Code, e.Message, e.err)
+		}
+		return fmt.Sprintf("%s: %s", e.Code, e.Message)
+	}
+	if e.err != nil {
+		return fmt.Sprintf("%s: %s: attribute:%+v: err=%s", e.Code, e.Message, e.KV, e.err)
+	}
+	return fmt.Sprintf("%s: %s: attribute:%+v", e.Code, e.Message, e.KV)
+}
+
+// Is is err equal check
+func (e *Error) Is(target error) bool {
+	var appErr *Error
+	if !errors.As(target, &appErr) {
+		return false
+	}
+	return e.Code == appErr.Code
+}
+
+// Unwrap is return unwrap error
+func (e *Error) Unwrap() error {
+	return e.err
+}
+
+// NewErrInvalidArgument is return InvalidArgument
+func NewErrInvalidArgument(message string, kv map[string]interface{}, err error) error {
+	return &Error{
+		Code:    ErrInvalidArgument.Code,
+		Message: message,
+		KV:      kv,
+		err:     err,
+	}
+}

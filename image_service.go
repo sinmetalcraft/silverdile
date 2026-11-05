@@ -55,7 +55,18 @@ func (s *ImageService) Write(ctx context.Context, bucket string, object string, 
 	if err := imaging.Encode(w, img, f); err != nil {
 		return err
 	}
+	if err := w.Close(); err != nil {
+		return err
+	}
 	return nil
+}
+
+// NewReader is Cloud Storage上のObjectのReaderを返す
+func (s *ImageService) NewReader(ctx context.Context, bucket string, object string) (r *storage.Reader, err error) {
+	ctx = trace.StartSpan(ctx, "ImageService.NewReader")
+	defer func() { trace.EndSpan(ctx, err) }()
+
+	return s.GCS.Bucket(bucket).Object(object).NewReader(ctx)
 }
 
 func (s *ImageService) Read(ctx context.Context, bucket string, object string) (img image.Image, attrs *storage.ObjectAttrs, err error) {

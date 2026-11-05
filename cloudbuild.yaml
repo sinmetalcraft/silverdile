@@ -1,8 +1,4 @@
 steps:
-  - name: 'golang:1.17'
+  - name: 'golang:1.27'
     entrypoint: 'go'
     args: ['test', './...']
-  # Deploy to App Engine
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args: ['app', 'deploy', 'app/app.yaml']

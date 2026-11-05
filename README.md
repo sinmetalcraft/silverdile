@@ -1,6 +1,7 @@
 # silverdile
 
-Google App Engine Image Serviceのようなものを2nd genでも利用するために生まれた
+Google App Engine Image Serviceのようなものを2nd genでも利用するために生まれた。
+ただ、今はCloud Runで動作させるのを前提にしている。
 
 ## アーキテクチャ
 
@@ -17,7 +18,6 @@ Google App Engine Image Serviceのようなものを2nd genでも利用するた
 
 アーキテクチャはv2と同様。
 singleflightやcache layerを独自に入れやすいようにv2と比べて処理が分解されて、必要最低限のものだけになった。
-Cloud Runで動かすことを意識しているが、GAE 2nd Genでも動く。
 
 ## Setup
 
@@ -32,8 +32,8 @@ Pathとして `/{bucket}/{object}/=s???` を指定すると画像の長辺を???
 
 Example
 
-* https://silverdile-dot-sinmetal-ci.an.r.appspot.com/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s700
-* https://silverdile-dot-sinmetal-ci.an.r.appspot.com/v3/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s700
+* https://localhost.com:8080/v2/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s700
+* https://localhost.com:8080/v3/image/resize/sinmetal-ci-silverdile/jun0.jpg/=s700
 
 #### Limitation
 
@@ -43,8 +43,4 @@ Example
 
 ### Local GAE Run
 
-`go run github.com/sinmetalcraft/silverdile/app`
-
-### Deploy
-
-`gcloud app deploy app/app.yaml`
+`go test ./...`
